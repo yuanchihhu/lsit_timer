@@ -113,15 +113,6 @@
     }
     button:disabled{ opacity:.45; cursor:not-allowed; }
 
-    .opts{
-      margin-top:10px;
-      display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
-      align-items:center;
-      color:#d6d6d6;
-      font-size:13px;
-    }
-    .opts input[type="range"]{ width:160px; }
-
     .hint{
       margin-top:10px;
       text-align:center;
@@ -247,18 +238,10 @@
         <button id="reset">重置</button>
       </div>
 
-      <div class="opts">
-        <label style="display:flex; gap:8px; align-items:center;">
-          <input id="mute" type="checkbox" />
-          靜音
-        </label>
-        <span>音量</span>
-        <input id="vol" type="range" min="0" max="100" value="60" />
-      </div>
-
       <div class="hint">
         iPhone 上「震動」多數情況無效（iOS 限制），所以這版用「聲音 + 閃爍」作提示。<br>
-        建議：Safari 開啟後 → 分享 →「加入主畫面」，使用體驗最像 App。
+        建議：Safari 開啟後 → 分享 →「加入主畫面」，使用體驗最像 App。<br>
+        （音量請用 iPhone 音量鍵調整）
       </div>
 
       <!-- Training log -->
@@ -300,8 +283,6 @@
   const $pause = $("pause");
   const $reset = $("reset");
 
-  const $mute = $("mute");
-  const $vol = $("vol");
   const $flash = $("flash");
 
   const $logList = $("logList");
@@ -427,7 +408,6 @@
       alert("目前沒有可複製的紀錄。");
       return;
     }
-    // export as readable text
     const lines = logs.map((x) => {
       const when = x.when || toLocalTimeString(new Date(x.timestamp));
       const status = x.completed ? "完成" : "未完成";
@@ -438,7 +418,6 @@
       await navigator.clipboard.writeText(text);
       alert("已複製到剪貼簿 ✅");
     } catch(e){
-      // fallback: prompt
       window.prompt("複製以下內容：", text);
     }
   }
@@ -446,22 +425,18 @@
   // -----------------------------
   // Timer core
   // -----------------------------
-  // Settings
   let totalSets = 4, holdSec = 20, restSec = 60, prepSec = 10;
 
-  // State
-  let phase = "idle"; // idle | prep | hold | rest | done | paused
+  let phase = "idle";
   let currentSet = 1;
   let remaining = 0;
   let timerId = null;
 
-  // For logging
   let sessionId = null;
   let sessionStartTs = null;
-  let sessionPlan = null; // {targetSets, holdSec, restSec, prepSec}
+  let sessionPlan = null;
   let lastActivePhase = "hold";
 
-  // Audio
   let audioCtx = null;
   let audioUnlocked = false;
 
@@ -543,17 +518,15 @@
   }
 
   function playBeep({freq=880, ms=120} = {}){
-    if ($mute.checked) return;
     ensureAudioUnlocked();
     if (!audioUnlocked || !audioCtx) return;
 
-    const vol = Math.max(0, Math.min(1, parseInt($vol.value,10)/100));
     try{
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
-      gain.gain.value = 0.08 * vol;
+      gain.gain.value = 0.08;  // 固定音量，交給手機音量鍵控制
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
@@ -601,9 +574,6 @@
     }
   }
 
-  // -----------------------------
-  // Session logging helpers
-  // -----------------------------
   function newSession(){
     sessionId = `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     sessionStartTs = new Date();
@@ -616,7 +586,6 @@
   }
 
   function finalizeSession({completed, endPhase, completedSets}){
-    // Avoid duplicate logs
     if (!sessionId || !sessionStartTs || !sessionPlan) return;
 
     const now = new Date();
@@ -626,13 +595,11 @@
       when: toLocalTimeString(now),
       dateKey: toLocalDateKey(now),
 
-      // plan
       targetSets: sessionPlan.targetSets,
       holdSec: sessionPlan.holdSec,
       restSec: sessionPlan.restSec,
       prepSec: sessionPlan.prepSec,
 
-      // result
       completed: !!completed,
       completedSets: Math.max(0, Math.min(sessionPlan.targetSets, completedSets || 0)),
       endPhase: endPhase || "unknown"
@@ -640,24 +607,17 @@
 
     addLog(entry);
 
-    // reset session markers
     sessionId = null;
     sessionStartTs = null;
     sessionPlan = null;
   }
 
   function getCompletedSetsSoFar(){
-    // currentSet is 1-based for hold/rest phases.
-    // If we are in HOLD phase, currentSet hasn't been completed yet.
-    // If we are in REST phase, currentSet has been completed.
-    // If in PREP, none completed.
-    // If DONE, all completed.
     if (phase === "done") return totalSets;
     if (phase === "prep") return 0;
     if (phase === "hold") return Math.max(0, currentSet - 1);
     if (phase === "rest") return Math.max(0, currentSet);
     if (phase === "paused") {
-      // paused: use lastActivePhase to infer
       if (lastActivePhase === "rest") return Math.max(0, currentSet);
       if (lastActivePhase === "hold") return Math.max(0, currentSet - 1);
       if (lastActivePhase === "prep") return 0;
@@ -692,7 +652,6 @@
         stopTimer();
         transitionCue("finish");
 
-        // LOG completed session
         finalizeSession({
           completed: true,
           endPhase: "done",
@@ -720,14 +679,12 @@
     readInputs();
 
     if (phase === "paused") {
-      // resume
       setPhase(lastActivePhase || "hold");
       startTimerLoop();
       transitionCue("start");
       return;
     }
 
-    // fresh start
     newSession();
 
     currentSet = 1;
@@ -754,14 +711,12 @@
     setPhase("paused");
     setControlsRunning(false);
 
-    // allow edits while paused (won't affect current session unless reset)
     [$sets,$hold,$rest,$prep].forEach(el => el.disabled = false);
     $pause.disabled = true;
     $start.disabled = false;
   }
 
   function reset({logIfRunning} = {logIfRunning:true}){
-    // if there is an active session and we're not done/idle, record as not completed
     const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
     const alreadyDone = (phase === "done");
 
@@ -781,14 +736,10 @@
     $display.textContent = fmt(preview);
   }
 
-  // -----------------------------
-  // Events
-  // -----------------------------
   $start.addEventListener("click", () => {
     if (timerId) return;
 
     if (phase === "done") {
-      // done -> start a new session
       reset({logIfRunning:false});
     }
     startOrResume();
@@ -798,7 +749,6 @@
 
   $reset.addEventListener("click", () => reset({logIfRunning:true}));
 
-  // keep preview updated when idle
   $hold.addEventListener("input", () => {
     if (timerId) return;
     if (phase !== "idle") return;
@@ -813,7 +763,6 @@
 
   $exportLogBtn.addEventListener("click", () => exportLogsToClipboard());
 
-  // If user leaves page while session active, log as not completed (best effort)
   window.addEventListener("beforeunload", () => {
     const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
     if (wasActive) {
@@ -827,9 +776,6 @@
     }
   });
 
-  // -----------------------------
-  // Initial
-  // -----------------------------
   setPhase("idle");
   $display.textContent = fmt(parseInt($hold.value || "20", 10));
 
@@ -838,4 +784,5 @@
 </script>
 </body>
 </html>
+
 
