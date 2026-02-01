@@ -21,7 +21,7 @@
       background:var(--bg); color:var(--text);
       display:flex; align-items:center; justify-content:center;
     }
-    .wrap{ width:min(860px, 94vw); padding:14px; }
+    .wrap{ width:min(940px, 94vw); padding:14px; }
     .panel{
       background:linear-gradient(180deg, #151515, #0f0f0f);
       border:1px solid var(--border);
@@ -108,6 +108,9 @@
       background: rgba(76,255,143,.12);
       border-color: rgba(76,255,143,.35);
     }
+    button.ghost{
+      background: transparent;
+    }
     button:disabled{ opacity:.45; cursor:not-allowed; }
 
     .opts{
@@ -118,6 +121,7 @@
       font-size:13px;
     }
     .opts input[type="range"]{ width:160px; }
+
     .hint{
       margin-top:10px;
       text-align:center;
@@ -125,6 +129,65 @@
       font-size:12px;
       line-height:1.4;
     }
+
+    /* Log panel */
+    .logPanel{
+      margin-top:14px;
+      border-top:1px solid var(--border);
+      padding-top:14px;
+    }
+    .logHeader{
+      display:flex; gap:10px; align-items:center; justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:10px;
+    }
+    .logTitle{
+      font-size:14px; font-weight:800; color:#e9e9e9;
+    }
+    .logActions{
+      display:flex; gap:8px; align-items:center;
+    }
+    .smallBtn{
+      font-size:14px;
+      padding:10px 12px;
+      min-width:auto;
+    }
+    .stats{
+      display:flex; gap:10px; flex-wrap:wrap;
+      color:#cfcfcf; font-size:12px;
+    }
+    .statChip{
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.25);
+      border-radius:999px;
+      padding:6px 10px;
+    }
+    .logList{
+      display:grid; gap:8px;
+    }
+    .logItem{
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(0,0,0,.22);
+      padding:10px 12px;
+      display:grid; gap:6px;
+    }
+    .logTop{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      align-items:center;
+    }
+    .logWhen{ font-size:13px; color:#e6e6e6; }
+    .logResult{
+      font-size:12px;
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background:#0c0c0c;
+      white-space:nowrap;
+    }
+    .ok{ color: var(--accent); border-color: rgba(76,255,143,.35); }
+    .ng{ color: var(--danger); border-color: rgba(255,76,76,.35); }
+    .logMeta{ font-size:12px; color:#bdbdbd; line-height:1.35; }
 
     /* Visual cues */
     .flash{
@@ -143,7 +206,6 @@
     .warnText{ color: var(--warn); }
     .dangerText{ color: var(--danger); }
 
-    /* Prevent double-tap zoom on buttons (iOS often ok with meta viewport + large buttons) */
     button, input { touch-action: manipulation; }
   </style>
 </head>
@@ -180,7 +242,7 @@
       </div>
 
       <div class="controls">
-        <button class="primary" id="start">開始</button>
+        <button class="primary" id="start">開始 / 續跑</button>
         <button id="pause" disabled>暫停</button>
         <button id="reset">重置</button>
       </div>
@@ -197,6 +259,25 @@
       <div class="hint">
         iPhone 上「震動」多數情況無效（iOS 限制），所以這版用「聲音 + 閃爍」作提示。<br>
         建議：Safari 開啟後 → 分享 →「加入主畫面」，使用體驗最像 App。
+      </div>
+
+      <!-- Training log -->
+      <div class="logPanel">
+        <div class="logHeader">
+          <div class="logTitle">訓練紀錄（本機）</div>
+          <div class="logActions">
+            <button class="smallBtn ghost" id="exportLogBtn">複製紀錄</button>
+            <button class="smallBtn" id="clearLogBtn">清除紀錄</button>
+          </div>
+        </div>
+
+        <div class="stats" id="stats">
+          <div class="statChip" id="statTotal">總次數：0</div>
+          <div class="statChip" id="statDone">完成：0</div>
+          <div class="statChip" id="statStreak">近7天：0 次</div>
+        </div>
+
+        <div class="logList" id="logList"></div>
       </div>
     </div>
   </div>
@@ -223,6 +304,148 @@
   const $vol = $("vol");
   const $flash = $("flash");
 
+  const $logList = $("logList");
+  const $clearLogBtn = $("clearLogBtn");
+  const $exportLogBtn = $("exportLogBtn");
+  const $statTotal = $("statTotal");
+  const $statDone = $("statDone");
+  const $statStreak = $("statStreak");
+
+  // -----------------------------
+  // localStorage log
+  // -----------------------------
+  const LOG_KEY = "lsit_timer_logs_v1";
+  const MAX_LOG_ITEMS = 50; // keep last 50
+  const MAX_RENDER_ITEMS = 10;
+
+  function safeJsonParse(str, fallback){
+    try { return JSON.parse(str); } catch { return fallback; }
+  }
+
+  function loadLogs(){
+    const raw = localStorage.getItem(LOG_KEY);
+    const logs = safeJsonParse(raw, []);
+    return Array.isArray(logs) ? logs : [];
+  }
+
+  function saveLogs(logs){
+    localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+  }
+
+  function toLocalTimeString(d){
+    // yyyy-mm-dd HH:MM
+    const pad = (n) => String(n).padStart(2,"0");
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth()+1);
+    const dd = pad(d.getDate());
+    const HH = pad(d.getHours());
+    const MM = pad(d.getMinutes());
+    return `${yyyy}-${mm}-${dd} ${HH}:${MM}`;
+  }
+
+  function toLocalDateKey(d){
+    const pad = (n) => String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function addLog(entry){
+    const logs = loadLogs();
+    logs.unshift(entry);
+    if (logs.length > MAX_LOG_ITEMS) logs.length = MAX_LOG_ITEMS;
+    saveLogs(logs);
+    renderLogs();
+  }
+
+  function computeLast7DaysCount(logs){
+    const now = new Date();
+    const ms7 = 7 * 24 * 60 * 60 * 1000;
+    const from = new Date(now.getTime() - ms7);
+    return logs.filter(x => {
+      const t = new Date(x.timestamp);
+      return t >= from && t <= now;
+    }).length;
+  }
+
+  function renderLogs(){
+    const logs = loadLogs();
+
+    const total = logs.length;
+    const done = logs.filter(x => x.completed === true).length;
+    const last7 = computeLast7DaysCount(logs);
+
+    $statTotal.textContent = `總次數：${total}`;
+    $statDone.textContent = `完成：${done}`;
+    $statStreak.textContent = `近7天：${last7} 次`;
+
+    $logList.innerHTML = "";
+
+    if (logs.length === 0){
+      const empty = document.createElement("div");
+      empty.className = "logItem";
+      empty.innerHTML = `
+        <div class="logTop">
+          <div class="logWhen">尚無紀錄</div>
+          <div class="logResult">—</div>
+        </div>
+        <div class="logMeta">完成一次訓練後會自動記錄在本機（localStorage）。</div>
+      `;
+      $logList.appendChild(empty);
+      return;
+    }
+
+    logs.slice(0, MAX_RENDER_ITEMS).forEach((x) => {
+      const item = document.createElement("div");
+      item.className = "logItem";
+
+      const when = x.when || toLocalTimeString(new Date(x.timestamp));
+      const resultText = x.completed ? "完成 ✅" : "未完成 ⛔";
+      const resultCls = x.completed ? "logResult ok" : "logResult ng";
+      const meta = [
+        `目標：${x.targetSets} 組｜撐 ${x.holdSec}s｜休 ${x.restSec}s｜準備 ${x.prepSec}s`,
+        `結果：完成 ${x.completedSets}/${x.targetSets} 組｜結束階段：${x.endPhase}`
+      ].join("<br>");
+
+      item.innerHTML = `
+        <div class="logTop">
+          <div class="logWhen">${when}</div>
+          <div class="${resultCls}">${resultText}</div>
+        </div>
+        <div class="logMeta">${meta}</div>
+      `;
+      $logList.appendChild(item);
+    });
+  }
+
+  function clearLogs(){
+    localStorage.removeItem(LOG_KEY);
+    renderLogs();
+  }
+
+  async function exportLogsToClipboard(){
+    const logs = loadLogs();
+    if (logs.length === 0){
+      alert("目前沒有可複製的紀錄。");
+      return;
+    }
+    // export as readable text
+    const lines = logs.map((x) => {
+      const when = x.when || toLocalTimeString(new Date(x.timestamp));
+      const status = x.completed ? "完成" : "未完成";
+      return `${when}｜${status}｜${x.completedSets}/${x.targetSets}組｜撐${x.holdSec}s 休${x.restSec}s 準備${x.prepSec}s`;
+    });
+    const text = lines.join("\n");
+    try{
+      await navigator.clipboard.writeText(text);
+      alert("已複製到剪貼簿 ✅");
+    } catch(e){
+      // fallback: prompt
+      window.prompt("複製以下內容：", text);
+    }
+  }
+
+  // -----------------------------
+  // Timer core
+  // -----------------------------
   // Settings
   let totalSets = 4, holdSec = 20, restSec = 60, prepSec = 10;
 
@@ -232,7 +455,13 @@
   let remaining = 0;
   let timerId = null;
 
-  // Audio (iOS needs user gesture to start AudioContext)
+  // For logging
+  let sessionId = null;
+  let sessionStartTs = null;
+  let sessionPlan = null; // {targetSets, holdSec, restSec, prepSec}
+  let lastActivePhase = "hold";
+
+  // Audio
   let audioCtx = null;
   let audioUnlocked = false;
 
@@ -281,7 +510,7 @@
     } else if (phase === "paused") {
       $stateChip.textContent = "暫停";
       $badge.textContent = "暫停中";
-      $sub.textContent = "按「開始」可續跑。";
+      $sub.textContent = "按「開始 / 續跑」可續跑；按「重置」會結束本次並記錄未完成。";
       $display.className = "time";
     } else {
       $stateChip.textContent = "待機";
@@ -300,7 +529,6 @@
     if (audioUnlocked) return;
     try{
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      // create a silent sound to unlock
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       gain.gain.value = 0.0001;
@@ -310,7 +538,6 @@
       osc.stop(audioCtx.currentTime + 0.02);
       audioUnlocked = true;
     } catch(e){
-      // If audio context fails, we just skip sound gracefully
       audioUnlocked = false;
     }
   }
@@ -326,7 +553,7 @@
       const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = freq;
-      gain.gain.value = 0.08 * vol; // conservative for iPhone speakers
+      gain.gain.value = 0.08 * vol;
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start();
@@ -334,7 +561,6 @@
     } catch(e){}
   }
 
-  // iPhone: vibration usually unavailable; kept as best-effort (will no-op on iOS)
   function vibrate(pattern){
     try{
       if ("vibrate" in navigator) navigator.vibrate(pattern);
@@ -352,16 +578,13 @@
     timerId = setInterval(tick, 1000);
   }
 
-  // LAST-3 cues: for any active phase (prep/hold/rest)
   function last3Cue(){
     playBeep({freq: 990, ms: 110});
     flash("danger");
     vibrate(60);
   }
 
-  // Phase transition cue
   function transitionCue(kind){
-    // kind: "start" | "switch" | "finish"
     if (kind === "start") {
       playBeep({freq: 880, ms: 260});
       flash("warn");
@@ -371,7 +594,6 @@
       flash("accent");
       vibrate([120, 60, 120]);
     } else {
-      // finish
       playBeep({freq: 660, ms: 320});
       setTimeout(() => playBeep({freq: 880, ms: 320}), 180);
       flash("accent");
@@ -379,8 +601,72 @@
     }
   }
 
+  // -----------------------------
+  // Session logging helpers
+  // -----------------------------
+  function newSession(){
+    sessionId = `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    sessionStartTs = new Date();
+    sessionPlan = {
+      targetSets: totalSets,
+      holdSec,
+      restSec,
+      prepSec
+    };
+  }
+
+  function finalizeSession({completed, endPhase, completedSets}){
+    // Avoid duplicate logs
+    if (!sessionId || !sessionStartTs || !sessionPlan) return;
+
+    const now = new Date();
+    const entry = {
+      id: sessionId,
+      timestamp: now.toISOString(),
+      when: toLocalTimeString(now),
+      dateKey: toLocalDateKey(now),
+
+      // plan
+      targetSets: sessionPlan.targetSets,
+      holdSec: sessionPlan.holdSec,
+      restSec: sessionPlan.restSec,
+      prepSec: sessionPlan.prepSec,
+
+      // result
+      completed: !!completed,
+      completedSets: Math.max(0, Math.min(sessionPlan.targetSets, completedSets || 0)),
+      endPhase: endPhase || "unknown"
+    };
+
+    addLog(entry);
+
+    // reset session markers
+    sessionId = null;
+    sessionStartTs = null;
+    sessionPlan = null;
+  }
+
+  function getCompletedSetsSoFar(){
+    // currentSet is 1-based for hold/rest phases.
+    // If we are in HOLD phase, currentSet hasn't been completed yet.
+    // If we are in REST phase, currentSet has been completed.
+    // If in PREP, none completed.
+    // If DONE, all completed.
+    if (phase === "done") return totalSets;
+    if (phase === "prep") return 0;
+    if (phase === "hold") return Math.max(0, currentSet - 1);
+    if (phase === "rest") return Math.max(0, currentSet);
+    if (phase === "paused") {
+      // paused: use lastActivePhase to infer
+      if (lastActivePhase === "rest") return Math.max(0, currentSet);
+      if (lastActivePhase === "hold") return Math.max(0, currentSet - 1);
+      if (lastActivePhase === "prep") return 0;
+      return Math.max(0, currentSet - 1);
+    }
+    return Math.max(0, currentSet - 1);
+  }
+
   function tick(){
-    // cue at 3/2/1 before hitting 0
     if (remaining === 3 || remaining === 2 || remaining === 1) {
       last3Cue();
     }
@@ -390,7 +676,6 @@
 
     if (remaining !== 0) return;
 
-    // reached 0 => transition
     transitionCue("switch");
 
     if (phase === "prep") {
@@ -406,6 +691,13 @@
         setPhase("done");
         stopTimer();
         transitionCue("finish");
+
+        // LOG completed session
+        finalizeSession({
+          completed: true,
+          endPhase: "done",
+          completedSets: totalSets
+        });
         return;
       }
       setPhase("rest");
@@ -428,7 +720,7 @@
     readInputs();
 
     if (phase === "paused") {
-      // resume exactly where you left off
+      // resume
       setPhase(lastActivePhase || "hold");
       startTimerLoop();
       transitionCue("start");
@@ -436,6 +728,8 @@
     }
 
     // fresh start
+    newSession();
+
     currentSet = 1;
     if (prepSec > 0) {
       setPhase("prep");
@@ -449,57 +743,97 @@
     startTimerLoop();
   }
 
-  let lastActivePhase = "hold";
-
   function pause(){
     if (!timerId) return;
     clearInterval(timerId);
     timerId = null;
-    // remember which phase we paused in
+
     if (phase === "prep" || phase === "hold" || phase === "rest") {
       lastActivePhase = phase;
     }
     setPhase("paused");
     setControlsRunning(false);
-    // keep inputs disabled? better: allow tweaks only after reset; here we allow edits while paused
-    // (but it won't affect current run unless user resets)
+
+    // allow edits while paused (won't affect current session unless reset)
     [$sets,$hold,$rest,$prep].forEach(el => el.disabled = false);
     $pause.disabled = true;
     $start.disabled = false;
   }
 
-  function reset(){
+  function reset({logIfRunning} = {logIfRunning:true}){
+    // if there is an active session and we're not done/idle, record as not completed
+    const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
+    const alreadyDone = (phase === "done");
+
+    if (logIfRunning && wasActive && !alreadyDone) {
+      finalizeSession({
+        completed: false,
+        endPhase: phase,
+        completedSets: getCompletedSetsSoFar()
+      });
+    }
+
     stopTimer();
     readInputs();
     setPhase("idle");
-    // show preview as HOLD time
     const preview = Math.max(1, parseInt($hold.value || "20", 10));
     remaining = preview;
     $display.textContent = fmt(preview);
   }
 
+  // -----------------------------
   // Events
+  // -----------------------------
   $start.addEventListener("click", () => {
-    // If currently running, ignore
     if (timerId) return;
-    // If done, a new start should restart
-    if (phase === "done") reset();
+
+    if (phase === "done") {
+      // done -> start a new session
+      reset({logIfRunning:false});
+    }
     startOrResume();
   });
 
   $pause.addEventListener("click", () => pause());
-  $reset.addEventListener("click", () => reset());
 
-  // keep display preview updated when idle
-  [$hold].forEach(el => el.addEventListener("input", () => {
+  $reset.addEventListener("click", () => reset({logIfRunning:true}));
+
+  // keep preview updated when idle
+  $hold.addEventListener("input", () => {
     if (timerId) return;
+    if (phase !== "idle") return;
     const v = Math.max(1, parseInt($hold.value || "20", 10));
     $display.textContent = fmt(v);
-  }));
+  });
 
+  $clearLogBtn.addEventListener("click", () => {
+    if (!confirm("確定要清除所有本機紀錄嗎？")) return;
+    clearLogs();
+  });
+
+  $exportLogBtn.addEventListener("click", () => exportLogsToClipboard());
+
+  // If user leaves page while session active, log as not completed (best effort)
+  window.addEventListener("beforeunload", () => {
+    const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
+    if (wasActive) {
+      try{
+        finalizeSession({
+          completed: false,
+          endPhase: "beforeunload",
+          completedSets: getCompletedSetsSoFar()
+        });
+      } catch(e){}
+    }
+  });
+
+  // -----------------------------
   // Initial
+  // -----------------------------
   setPhase("idle");
   $display.textContent = fmt(parseInt($hold.value || "20", 10));
+
+  renderLogs();
 })();
 </script>
 </body>
