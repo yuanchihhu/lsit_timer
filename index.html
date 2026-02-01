@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="theme-color" content="#111111" />
   <title>L-sit Timer (iPhone)</title>
+
   <style>
     :root{
       --bg:#0f0f0f; --panel:#161616; --border:#2a2a2a;
@@ -30,16 +31,16 @@
       box-shadow: 0 14px 40px rgba(0,0,0,.45);
     }
     header{
-      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      display:flex; justify-content:space-between; align-items:center;
       margin-bottom:10px;
     }
-    h1{ margin:0; font-size:18px; font-weight:800; letter-spacing:.2px; }
+    h1{ margin:0; font-size:18px; font-weight:800; }
     .chip{
-      font-size:12px; color:#ddd;
+      font-size:12px;
       border:1px solid var(--border);
-      border-radius:999px; padding:6px 10px;
-      background:rgba(0,0,0,.25);
-      white-space:nowrap;
+      border-radius:999px;
+      padding:6px 10px;
+      background:#00000040;
     }
 
     .grid{
@@ -49,45 +50,40 @@
       margin:10px 0 12px;
     }
     @media (max-width: 720px){
-      .grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid{ grid-template-columns: repeat(2, 1fr); }
     }
     label{
       display:grid; gap:6px;
       font-size:12px; color:#d6d6d6;
     }
     input{
-      width:100%;
-      padding:12px 12px;
+      padding:12px;
       border-radius:12px;
       border:1px solid var(--border);
-      background:#0c0c0c; color:#fff;
+      background:#0c0c0c;
+      color:#fff;
       font-size:18px;
     }
 
     .stage{
-      margin-top:6px;
       text-align:center;
       display:grid; gap:10px;
     }
     .badge{
       justify-self:center;
-      font-size:14px;
       padding:8px 14px;
       border-radius:999px;
       border:1px solid var(--border);
-      background:rgba(0,0,0,.3);
+      background:#00000040;
+      font-size:14px;
     }
     .time{
       font-size: clamp(72px, 12vw, 120px);
-      font-weight: 900;
-      letter-spacing: 1px;
-      line-height: 1;
-      margin-top:2px;
+      font-weight:900;
     }
     .sub{
       color:var(--muted);
       font-size:15px;
-      min-height: 20px;
     }
 
     .controls{
@@ -101,740 +97,120 @@
       color:#fff;
       font-size:18px;
       padding:12px 18px;
-      cursor:pointer;
-      min-width: 120px;
+      min-width:120px;
     }
     button.primary{
-      background: rgba(76,255,143,.12);
-      border-color: rgba(76,255,143,.35);
+      background:#4cff8f20;
+      border-color:#4cff8f60;
     }
-    button.ghost{
-      background: transparent;
-    }
-    button:disabled{ opacity:.45; cursor:not-allowed; }
-
-    .opts{
-      margin-top:10px;
-      display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
-      align-items:center;
-      color:#d6d6d6;
-      font-size:13px;
-    }
-    .opts input[type="range"]{ width:160px; }
+    button:disabled{ opacity:.45; }
 
     .hint{
       margin-top:10px;
-      text-align:center;
-      color:#9a9a9a;
       font-size:12px;
+      color:#9a9a9a;
+      text-align:center;
       line-height:1.4;
     }
 
-    /* Log panel */
-    .logPanel{
-      margin-top:14px;
-      border-top:1px solid var(--border);
-      padding-top:14px;
-    }
-    .logHeader{
-      display:flex; gap:10px; align-items:center; justify-content:space-between;
-      flex-wrap:wrap;
-      margin-bottom:10px;
-    }
-    .logTitle{
-      font-size:14px; font-weight:800; color:#e9e9e9;
-    }
-    .logActions{
-      display:flex; gap:8px; align-items:center;
-    }
-    .smallBtn{
-      font-size:14px;
-      padding:10px 12px;
-      min-width:auto;
-    }
-    .stats{
-      display:flex; gap:10px; flex-wrap:wrap;
-      color:#cfcfcf; font-size:12px;
-    }
-    .statChip{
-      border:1px solid var(--border);
-      background:rgba(0,0,0,.25);
-      border-radius:999px;
-      padding:6px 10px;
-    }
-    .logList{
-      display:grid; gap:8px;
-    }
-    .logItem{
-      border:1px solid var(--border);
-      border-radius:14px;
-      background:rgba(0,0,0,.22);
-      padding:10px 12px;
-      display:grid; gap:6px;
-    }
-    .logTop{
-      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
-      align-items:center;
-    }
-    .logWhen{ font-size:13px; color:#e6e6e6; }
-    .logResult{
-      font-size:12px;
-      padding:4px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background:#0c0c0c;
-      white-space:nowrap;
-    }
-    .ok{ color: var(--accent); border-color: rgba(76,255,143,.35); }
-    .ng{ color: var(--danger); border-color: rgba(255,76,76,.35); }
-    .logMeta{ font-size:12px; color:#bdbdbd; line-height:1.35; }
-
-    /* Visual cues */
     .flash{
       position:fixed; inset:0;
       pointer-events:none;
-      background:transparent;
       opacity:0;
-      transition: opacity 120ms linear;
+      transition:opacity .12s linear;
     }
-    .flash.on{ opacity: .22; }
-    .flash.warn{ background: var(--warn); }
-    .flash.danger{ background: var(--danger); }
-    .flash.accent{ background: var(--accent); }
+    .flash.on{ opacity:.22; }
+    .flash.warn{ background:var(--warn); }
+    .flash.danger{ background:var(--danger); }
+    .flash.accent{ background:var(--accent); }
 
-    .accentText{ color: var(--accent); }
-    .warnText{ color: var(--warn); }
-    .dangerText{ color: var(--danger); }
-
-    button, input { touch-action: manipulation; }
+    .accentText{ color:var(--accent); }
+    .warnText{ color:var(--warn); }
   </style>
 </head>
 
 <body>
-  <div class="flash" id="flash"></div>
+<div class="flash" id="flash"></div>
 
-  <div class="wrap">
-    <div class="panel">
-      <header>
-        <h1>L-sit 循環計時器（iPhone 版）</h1>
-        <div class="chip" id="stateChip">待機</div>
-      </header>
+<div class="wrap">
+  <div class="panel">
 
-      <div class="grid">
-        <label>組數（4）
-          <input id="sets" type="number" min="1" value="4" inputmode="numeric" />
-        </label>
-        <label>支撐秒（15–20）
-          <input id="hold" type="number" min="1" value="20" inputmode="numeric" />
-        </label>
-        <label>休息秒（60–90）
-          <input id="rest" type="number" min="0" value="60" inputmode="numeric" />
-        </label>
-        <label>準備秒（10）
-          <input id="prep" type="number" min="0" value="10" inputmode="numeric" />
-        </label>
-      </div>
+    <header>
+      <h1>L-sit 循環計時器（iPhone 版）</h1>
+      <div class="chip" id="stateChip">待機</div>
+    </header>
 
-      <div class="stage">
-        <div class="badge" id="badge">準備好後按「開始」</div>
-        <div class="time" id="display">00:20</div>
-        <div class="sub" id="sub">建議：把 iPhone 自動鎖定改成「永不」，訓練時不要鎖屏。</div>
-      </div>
-
-      <div class="controls">
-        <button class="primary" id="start">開始 / 續跑</button>
-        <button id="pause" disabled>暫停</button>
-        <button id="reset">重置</button>
-      </div>
-
-      <div class="opts">
-        <label style="display:flex; gap:8px; align-items:center;">
-          <input id="mute" type="checkbox" />
-          靜音
-        </label>
-        <span>音量</span>
-        <input id="vol" type="range" min="0" max="100" value="60" />
-      </div>
-
-      <div class="hint">
-        iPhone 上「震動」多數情況無效（iOS 限制），所以這版用「聲音 + 閃爍」作提示。<br>
-        建議：Safari 開啟後 → 分享 →「加入主畫面」，使用體驗最像 App。
-      </div>
-
-      <!-- Training log -->
-      <div class="logPanel">
-        <div class="logHeader">
-          <div class="logTitle">訓練紀錄（本機）</div>
-          <div class="logActions">
-            <button class="smallBtn ghost" id="exportLogBtn">複製紀錄</button>
-            <button class="smallBtn" id="clearLogBtn">清除紀錄</button>
-          </div>
-        </div>
-
-        <div class="stats" id="stats">
-          <div class="statChip" id="statTotal">總次數：0</div>
-          <div class="statChip" id="statDone">完成：0</div>
-          <div class="statChip" id="statStreak">近7天：0 次</div>
-        </div>
-
-        <div class="logList" id="logList"></div>
-      </div>
+    <div class="grid">
+      <label>組數<input id="sets" type="number" min="1" value="4"></label>
+      <label>支撐秒<input id="hold" type="number" min="1" value="20"></label>
+      <label>休息秒<input id="rest" type="number" min="0" value="60"></label>
+      <label>準備秒<input id="prep" type="number" min="0" value="10"></label>
     </div>
+
+    <div class="stage">
+      <div class="badge" id="badge">準備好後按「開始」</div>
+      <div class="time" id="display">00:20</div>
+      <div class="sub" id="sub">建議訓練時不要鎖屏</div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="start">開始 / 續跑</button>
+      <button id="pause" disabled>暫停</button>
+      <button id="reset">重置</button>
+    </div>
+
+    <div class="hint">
+      ✅ 會自動記住你上次的組數/秒數設定（本機儲存）<br>
+      🔊 聲音大小請直接用 iPhone 音量鍵控制
+    </div>
+
   </div>
+</div>
 
 <script>
 (() => {
-  const $ = (id) => document.getElementById(id);
+  const $ = id => document.getElementById(id);
 
-  const $sets = $("sets");
-  const $hold = $("hold");
-  const $rest = $("rest");
-  const $prep = $("prep");
+  const sets = $("sets"), hold = $("hold"), rest = $("rest"), prep = $("prep");
+  const stateChip = $("stateChip"), badge = $("badge"), display = $("display");
+  const startBtn = $("start"), pauseBtn = $("pause"), resetBtn = $("reset");
+  const flash = $("flash");
 
-  const $stateChip = $("stateChip");
-  const $badge = $("badge");
-  const $display = $("display");
-  const $sub = $("sub");
+  // -------------------------
+  // Last settings (localStorage)
+  // -------------------------
+  const SETTINGS_KEY = "lsit_last_settings_v1";
 
-  const $start = $("start");
-  const $pause = $("pause");
-  const $reset = $("reset");
-
-  const $mute = $("mute");
-  const $vol = $("vol");
-  const $flash = $("flash");
-
-  const $logList = $("logList");
-  const $clearLogBtn = $("clearLogBtn");
-  const $exportLogBtn = $("exportLogBtn");
-  const $statTotal = $("statTotal");
-  const $statDone = $("statDone");
-  const $statStreak = $("statStreak");
-
-  // -----------------------------
-  // localStorage log
-  // -----------------------------
-  const LOG_KEY = "lsit_timer_logs_v1";
-  const MAX_LOG_ITEMS = 50; // keep last 50
-  const MAX_RENDER_ITEMS = 10;
-
-  function safeJsonParse(str, fallback){
-    try { return JSON.parse(str); } catch { return fallback; }
+  function clampInt(v, min, max){
+    v = parseInt(v, 10);
+    if (Number.isNaN(v)) v = min;
+    v = Math.max(min, v);
+    if (typeof max === "number") v = Math.min(max, v);
+    return v;
   }
 
-  function loadLogs(){
-    const raw = localStorage.getItem(LOG_KEY);
-    const logs = safeJsonParse(raw, []);
-    return Array.isArray(logs) ? logs : [];
-  }
-
-  function saveLogs(logs){
-    localStorage.setItem(LOG_KEY, JSON.stringify(logs));
-  }
-
-  function toLocalTimeString(d){
-    // yyyy-mm-dd HH:MM
-    const pad = (n) => String(n).padStart(2,"0");
-    const yyyy = d.getFullYear();
-    const mm = pad(d.getMonth()+1);
-    const dd = pad(d.getDate());
-    const HH = pad(d.getHours());
-    const MM = pad(d.getMinutes());
-    return `${yyyy}-${mm}-${dd} ${HH}:${MM}`;
-  }
-
-  function toLocalDateKey(d){
-    const pad = (n) => String(n).padStart(2,"0");
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-
-  function addLog(entry){
-    const logs = loadLogs();
-    logs.unshift(entry);
-    if (logs.length > MAX_LOG_ITEMS) logs.length = MAX_LOG_ITEMS;
-    saveLogs(logs);
-    renderLogs();
-  }
-
-  function computeLast7DaysCount(logs){
-    const now = new Date();
-    const ms7 = 7 * 24 * 60 * 60 * 1000;
-    const from = new Date(now.getTime() - ms7);
-    return logs.filter(x => {
-      const t = new Date(x.timestamp);
-      return t >= from && t <= now;
-    }).length;
-  }
-
-  function renderLogs(){
-    const logs = loadLogs();
-
-    const total = logs.length;
-    const done = logs.filter(x => x.completed === true).length;
-    const last7 = computeLast7DaysCount(logs);
-
-    $statTotal.textContent = `總次數：${total}`;
-    $statDone.textContent = `完成：${done}`;
-    $statStreak.textContent = `近7天：${last7} 次`;
-
-    $logList.innerHTML = "";
-
-    if (logs.length === 0){
-      const empty = document.createElement("div");
-      empty.className = "logItem";
-      empty.innerHTML = `
-        <div class="logTop">
-          <div class="logWhen">尚無紀錄</div>
-          <div class="logResult">—</div>
-        </div>
-        <div class="logMeta">完成一次訓練後會自動記錄在本機（localStorage）。</div>
-      `;
-      $logList.appendChild(empty);
-      return;
-    }
-
-    logs.slice(0, MAX_RENDER_ITEMS).forEach((x) => {
-      const item = document.createElement("div");
-      item.className = "logItem";
-
-      const when = x.when || toLocalTimeString(new Date(x.timestamp));
-      const resultText = x.completed ? "完成 ✅" : "未完成 ⛔";
-      const resultCls = x.completed ? "logResult ok" : "logResult ng";
-      const meta = [
-        `目標：${x.targetSets} 組｜撐 ${x.holdSec}s｜休 ${x.restSec}s｜準備 ${x.prepSec}s`,
-        `結果：完成 ${x.completedSets}/${x.targetSets} 組｜結束階段：${x.endPhase}`
-      ].join("<br>");
-
-      item.innerHTML = `
-        <div class="logTop">
-          <div class="logWhen">${when}</div>
-          <div class="${resultCls}">${resultText}</div>
-        </div>
-        <div class="logMeta">${meta}</div>
-      `;
-      $logList.appendChild(item);
-    });
-  }
-
-  function clearLogs(){
-    localStorage.removeItem(LOG_KEY);
-    renderLogs();
-  }
-
-  async function exportLogsToClipboard(){
-    const logs = loadLogs();
-    if (logs.length === 0){
-      alert("目前沒有可複製的紀錄。");
-      return;
-    }
-    // export as readable text
-    const lines = logs.map((x) => {
-      const when = x.when || toLocalTimeString(new Date(x.timestamp));
-      const status = x.completed ? "完成" : "未完成";
-      return `${when}｜${status}｜${x.completedSets}/${x.targetSets}組｜撐${x.holdSec}s 休${x.restSec}s 準備${x.prepSec}s`;
-    });
-    const text = lines.join("\n");
-    try{
-      await navigator.clipboard.writeText(text);
-      alert("已複製到剪貼簿 ✅");
-    } catch(e){
-      // fallback: prompt
-      window.prompt("複製以下內容：", text);
-    }
-  }
-
-  // -----------------------------
-  // Timer core
-  // -----------------------------
-  // Settings
-  let totalSets = 4, holdSec = 20, restSec = 60, prepSec = 10;
-
-  // State
-  let phase = "idle"; // idle | prep | hold | rest | done | paused
-  let currentSet = 1;
-  let remaining = 0;
-  let timerId = null;
-
-  // For logging
-  let sessionId = null;
-  let sessionStartTs = null;
-  let sessionPlan = null; // {targetSets, holdSec, restSec, prepSec}
-  let lastActivePhase = "hold";
-
-  // Audio
-  let audioCtx = null;
-  let audioUnlocked = false;
-
-  function pad2(n){ return String(n).padStart(2, "0"); }
-  function fmt(sec){
-    const mm = Math.floor(sec / 60);
-    const ss = sec % 60;
-    return `${pad2(mm)}:${pad2(ss)}`;
-  }
-
-  function readInputs(){
-    totalSets = Math.max(1, parseInt($sets.value || "4", 10));
-    holdSec  = Math.max(1, parseInt($hold.value || "20", 10));
-    restSec  = Math.max(0, parseInt($rest.value || "60", 10));
-    prepSec  = Math.max(0, parseInt($prep.value || "10", 10));
-  }
-
-  function setControlsRunning(running){
-    $start.disabled = running;
-    $pause.disabled = !running;
-    [$sets,$hold,$rest,$prep].forEach(el => el.disabled = running);
-  }
-
-  function setPhase(p){
-    phase = p;
-    if (phase === "prep") {
-      $stateChip.textContent = "準備";
-      $badge.textContent = "準備（就位）";
-      $sub.textContent = "把手抓穩、肩下壓、核心先收緊。";
-      $display.className = "time warnText";
-    } else if (phase === "hold") {
-      $stateChip.textContent = `撐｜第 ${currentSet}/${totalSets} 組`;
-      $badge.textContent = `第 ${currentSet}/${totalSets} 組｜撐`;
-      $sub.textContent = "保持穩定：不聳肩、不要晃、核心收緊。";
-      $display.className = "time accentText";
-    } else if (phase === "rest") {
-      $stateChip.textContent = `休｜第 ${currentSet}/${totalSets} 組`;
-      $badge.textContent = `第 ${currentSet}/${totalSets} 組｜休`;
-      $sub.textContent = "休息調整呼吸，準備下一組。";
-      $display.className = "time";
-    } else if (phase === "done") {
-      $stateChip.textContent = "完成";
-      $badge.textContent = "完成 ✅";
-      $sub.textContent = `本次 ${totalSets} 組結束。`;
-      $display.className = "time";
-    } else if (phase === "paused") {
-      $stateChip.textContent = "暫停";
-      $badge.textContent = "暫停中";
-      $sub.textContent = "按「開始 / 續跑」可續跑；按「重置」會結束本次並記錄未完成。";
-      $display.className = "time";
-    } else {
-      $stateChip.textContent = "待機";
-      $badge.textContent = "準備好後按「開始」";
-      $sub.textContent = "建議：iPhone 自動鎖定改成「永不」，訓練時不要鎖屏。";
-      $display.className = "time";
-    }
-  }
-
-  function flash(colorClass){
-    $flash.className = `flash ${colorClass} on`;
-    setTimeout(() => { $flash.className = "flash"; }, 140);
-  }
-
-  function ensureAudioUnlocked(){
-    if (audioUnlocked) return;
-    try{
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      gain.gain.value = 0.0001;
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.02);
-      audioUnlocked = true;
-    } catch(e){
-      audioUnlocked = false;
-    }
-  }
-
-  function playBeep({freq=880, ms=120} = {}){
-    if ($mute.checked) return;
-    ensureAudioUnlocked();
-    if (!audioUnlocked || !audioCtx) return;
-
-    const vol = Math.max(0, Math.min(1, parseInt($vol.value,10)/100));
-    try{
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.value = 0.08 * vol;
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      setTimeout(() => osc.stop(), ms);
-    } catch(e){}
-  }
-
-  function vibrate(pattern){
-    try{
-      if ("vibrate" in navigator) navigator.vibrate(pattern);
-    } catch(e){}
-  }
-
-  function stopTimer(){
-    if (timerId) clearInterval(timerId);
-    timerId = null;
-    setControlsRunning(false);
-  }
-
-  function startTimerLoop(){
-    setControlsRunning(true);
-    timerId = setInterval(tick, 1000);
-  }
-
-  function last3Cue(){
-    playBeep({freq: 990, ms: 110});
-    flash("danger");
-    vibrate(60);
-  }
-
-  function transitionCue(kind){
-    if (kind === "start") {
-      playBeep({freq: 880, ms: 260});
-      flash("warn");
-      vibrate([90, 40, 90]);
-    } else if (kind === "switch") {
-      playBeep({freq: 880, ms: 260});
-      flash("accent");
-      vibrate([120, 60, 120]);
-    } else {
-      playBeep({freq: 660, ms: 320});
-      setTimeout(() => playBeep({freq: 880, ms: 320}), 180);
-      flash("accent");
-      vibrate([150, 80, 150]);
-    }
-  }
-
-  // -----------------------------
-  // Session logging helpers
-  // -----------------------------
-  function newSession(){
-    sessionId = `sess_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-    sessionStartTs = new Date();
-    sessionPlan = {
-      targetSets: totalSets,
-      holdSec,
-      restSec,
-      prepSec
+  function getCurrentSettings(){
+    return {
+      sets: clampInt(sets.value, 1),
+      hold: clampInt(hold.value, 1),
+      rest: clampInt(rest.value, 0),
+      prep: clampInt(prep.value, 0)
     };
   }
 
-  function finalizeSession({completed, endPhase, completedSets}){
-    // Avoid duplicate logs
-    if (!sessionId || !sessionStartTs || !sessionPlan) return;
-
-    const now = new Date();
-    const entry = {
-      id: sessionId,
-      timestamp: now.toISOString(),
-      when: toLocalTimeString(now),
-      dateKey: toLocalDateKey(now),
-
-      // plan
-      targetSets: sessionPlan.targetSets,
-      holdSec: sessionPlan.holdSec,
-      restSec: sessionPlan.restSec,
-      prepSec: sessionPlan.prepSec,
-
-      // result
-      completed: !!completed,
-      completedSets: Math.max(0, Math.min(sessionPlan.targetSets, completedSets || 0)),
-      endPhase: endPhase || "unknown"
-    };
-
-    addLog(entry);
-
-    // reset session markers
-    sessionId = null;
-    sessionStartTs = null;
-    sessionPlan = null;
+  function saveSettings(){
+    try{
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(getCurrentSettings()));
+    }catch(e){}
   }
 
-  function getCompletedSetsSoFar(){
-    // currentSet is 1-based for hold/rest phases.
-    // If we are in HOLD phase, currentSet hasn't been completed yet.
-    // If we are in REST phase, currentSet has been completed.
-    // If in PREP, none completed.
-    // If DONE, all completed.
-    if (phase === "done") return totalSets;
-    if (phase === "prep") return 0;
-    if (phase === "hold") return Math.max(0, currentSet - 1);
-    if (phase === "rest") return Math.max(0, currentSet);
-    if (phase === "paused") {
-      // paused: use lastActivePhase to infer
-      if (lastActivePhase === "rest") return Math.max(0, currentSet);
-      if (lastActivePhase === "hold") return Math.max(0, currentSet - 1);
-      if (lastActivePhase === "prep") return 0;
-      return Math.max(0, currentSet - 1);
-    }
-    return Math.max(0, currentSet - 1);
-  }
+  function loadSettings(){
+    try{
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      if (!raw) return false;
+      const s = JSON.parse(raw);
+      if (!s) return false;
 
-  function tick(){
-    if (remaining === 3 || remaining === 2 || remaining === 1) {
-      last3Cue();
-    }
-
-    remaining = Math.max(0, remaining - 1);
-    $display.textContent = fmt(remaining);
-
-    if (remaining !== 0) return;
-
-    transitionCue("switch");
-
-    if (phase === "prep") {
-      currentSet = 1;
-      setPhase("hold");
-      remaining = holdSec;
-      $display.textContent = fmt(remaining);
-      return;
-    }
-
-    if (phase === "hold") {
-      if (currentSet >= totalSets) {
-        setPhase("done");
-        stopTimer();
-        transitionCue("finish");
-
-        // LOG completed session
-        finalizeSession({
-          completed: true,
-          endPhase: "done",
-          completedSets: totalSets
-        });
-        return;
-      }
-      setPhase("rest");
-      remaining = restSec;
-      $display.textContent = fmt(remaining);
-      return;
-    }
-
-    if (phase === "rest") {
-      currentSet += 1;
-      setPhase("hold");
-      remaining = holdSec;
-      $display.textContent = fmt(remaining);
-      return;
-    }
-  }
-
-  function startOrResume(){
-    ensureAudioUnlocked();
-    readInputs();
-
-    if (phase === "paused") {
-      // resume
-      setPhase(lastActivePhase || "hold");
-      startTimerLoop();
-      transitionCue("start");
-      return;
-    }
-
-    // fresh start
-    newSession();
-
-    currentSet = 1;
-    if (prepSec > 0) {
-      setPhase("prep");
-      remaining = prepSec;
-    } else {
-      setPhase("hold");
-      remaining = holdSec;
-    }
-    $display.textContent = fmt(remaining);
-    transitionCue("start");
-    startTimerLoop();
-  }
-
-  function pause(){
-    if (!timerId) return;
-    clearInterval(timerId);
-    timerId = null;
-
-    if (phase === "prep" || phase === "hold" || phase === "rest") {
-      lastActivePhase = phase;
-    }
-    setPhase("paused");
-    setControlsRunning(false);
-
-    // allow edits while paused (won't affect current session unless reset)
-    [$sets,$hold,$rest,$prep].forEach(el => el.disabled = false);
-    $pause.disabled = true;
-    $start.disabled = false;
-  }
-
-  function reset({logIfRunning} = {logIfRunning:true}){
-    // if there is an active session and we're not done/idle, record as not completed
-    const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
-    const alreadyDone = (phase === "done");
-
-    if (logIfRunning && wasActive && !alreadyDone) {
-      finalizeSession({
-        completed: false,
-        endPhase: phase,
-        completedSets: getCompletedSetsSoFar()
-      });
-    }
-
-    stopTimer();
-    readInputs();
-    setPhase("idle");
-    const preview = Math.max(1, parseInt($hold.value || "20", 10));
-    remaining = preview;
-    $display.textContent = fmt(preview);
-  }
-
-  // -----------------------------
-  // Events
-  // -----------------------------
-  $start.addEventListener("click", () => {
-    if (timerId) return;
-
-    if (phase === "done") {
-      // done -> start a new session
-      reset({logIfRunning:false});
-    }
-    startOrResume();
-  });
-
-  $pause.addEventListener("click", () => pause());
-
-  $reset.addEventListener("click", () => reset({logIfRunning:true}));
-
-  // keep preview updated when idle
-  $hold.addEventListener("input", () => {
-    if (timerId) return;
-    if (phase !== "idle") return;
-    const v = Math.max(1, parseInt($hold.value || "20", 10));
-    $display.textContent = fmt(v);
-  });
-
-  $clearLogBtn.addEventListener("click", () => {
-    if (!confirm("確定要清除所有本機紀錄嗎？")) return;
-    clearLogs();
-  });
-
-  $exportLogBtn.addEventListener("click", () => exportLogsToClipboard());
-
-  // If user leaves page while session active, log as not completed (best effort)
-  window.addEventListener("beforeunload", () => {
-    const wasActive = (phase === "prep" || phase === "hold" || phase === "rest" || phase === "paused");
-    if (wasActive) {
-      try{
-        finalizeSession({
-          completed: false,
-          endPhase: "beforeunload",
-          completedSets: getCompletedSetsSoFar()
-        });
-      } catch(e){}
-    }
-  });
-
-  // -----------------------------
-  // Initial
-  // -----------------------------
-  setPhase("idle");
-  $display.textContent = fmt(parseInt($hold.value || "20", 10));
-
-  renderLogs();
-})();
-</script>
-</body>
-</html>
+      // 這裡不做太嚴苛驗證，做基本落地即可
+      if (s.sets != null) sets.value = clampInt(s.sets, 1);
+      if (s.hold != null) hold.value = c
